@@ -1,3 +1,9 @@
+/**
+ * @license
+ * Copyright 2019 Google LLC. All Rights Reserved.
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 import { MarkerClusterer } from "@googlemaps/markerclusterer";
 
 async function initMap() {
@@ -77,4 +83,5 @@ const locations = [
 ];
 
 initMap();
+
 export {};

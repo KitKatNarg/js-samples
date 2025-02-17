@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Earthquake & Volcano Map</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f4f4f2; height: 100vh; display: flex; flex-direction: column; }
+
+    #toolbar {
+      display: flex; align-items: center; gap: 10px; padding: 10px 16px;
+      background: #fff; border-bottom: 1px solid #e0dfd8; flex-wrap: wrap;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+    }
+
+    .toolbar-title {
+      font-size: 15px; font-weight: 600; color: #1a1a1a; margin-right: 4px;
+    }
+
+    .btn-group {
+      display: flex; border: 1px solid #ccc; border-radius: 8px; overflow: hidden;
+    }
+    .btn-group button {
+      padding: 7px 16px; font-size: 13px; font-weight: 500;
+      background: #fff; color: #333; border: none; cursor: pointer;
+      transition: background 0.15s, color 0.15s;
+    }
+    .btn-group button + button { border-left: 1px solid #ccc; }
+    .btn-group button.active { background: #378ADD; color: #fff; }
+
+    .divider { width: 1px; height: 28px; background: #e0dfd8; }
+
+    .layer-btn {
+      display: flex; align-items: center; gap: 7px;
+      padding: 7px 14px; font-size: 13px; font-weight: 500;
+      background: #f4f4f2; color: #333;
+      border: 1px solid #ccc; border-radius: 8px;
+      cursor: pointer; transition: all 0.15s;
+      user-select: none;
+    }
+    .layer-btn.active { background: #fff; border-color: #aaa; box-shadow: 0 0 0 2px rgba(55,138,221,0.18); }
+    .layer-btn .dot { width: 11px; height: 11px; border-radius: 50%; display: inline-block; }
+    .layer-btn.inactive { opacity: 0.5; }
+
+    #eq-status {
+      margin-left: auto; font-size: 12px; color: #888;
+    }
+
+    #map { flex: 1; width: 100%; }
+
+    #legend {
+      display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+      padding: 7px 16px; background: #fafaf8;
+      border-top: 1px solid #e0dfd8; font-size: 12px; color: #555;
+    }
+    .legend-item { display: flex; align-items: center; gap: 5px; }
+    .legend-dot { border-radius: 50%; background: #E24B4A; display: inline-block; }
+
+    .leaflet-popup-content b { color: #1a1a1a; }
+    .leaflet-popup-content span { color: #555; }
+  </style>
+</head>
+<body>
+
+<div id="toolbar">
+  <span class="toolbar-title">Map</span>
+
+  <div class="btn-group">
+    <button id="btn-map" class="active" onclick="setBase('map')">Map</button>
+    <button id="btn-sat" onclick="setBase('sat')">Satellite</button>
+  </div>
+
+  <div class="divider"></div>
+
+  <button class="layer-btn active" id="btn-eq" onclick="toggleLayer('eq')">
+    <span class="dot" style="background:#E24B4A;"></span> Earthquakes
+  </button>
+
+  <button class="layer-btn active" id="btn-vol" onclick="toggleLayer('vol')">
+    <span class="dot" style="background:#BA7517;"></span> Volcanoes
+  </button>
+
+  <span id="eq-status">Loading earthquakes...</span>
+</div>
+
+<div id="map"></div>
+
+<div id="legend">
+  <span style="color:#444;font-weight:500;">Earthquake magnitude:</span>
+  <span class="legend-item"><span class="legend-dot" style="width:8px;height:8px;opacity:0.4;"></span> &lt; 3</span>
+  <span class="legend-item"><span class="legend-dot" style="width:10px;height:10px;opacity:0.6;"></span> 3 – 5</span>
+  <span class="legend-item"><span class="legend-dot" style="width:14px;height:14px;opacity:0.85;"></span> 5 – 7</span>
+  <span class="legend-item"><span class="legend-dot" style="width:18px;height:18px;opacity:1;"></span> 7+</span>
+  <span class="legend-item" style="margin-left:8px;">🔺 Active volcano</span>
+  <span style="margin-left:auto;color:#aaa;font-size:11px;">Earthquake data: USGS · Map: OpenStreetMap / Esri</span>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+const volcanoes = [
+  {name:"Kilauea",lat:19.421,lng:-155.287,country:"Hawaii, USA",type:"Shield"},
+  {name:"Mauna Loa",lat:19.475,lng:-155.608,country:"Hawaii, USA",type:"Shield"},
+  {name:"Mount Etna",lat:37.748,lng:14.999,country:"Italy",type:"Stratovolcano"},
+  {name:"Stromboli",lat:38.789,lng:15.213,country:"Italy",type:"Stratovolcano"},
+  {name:"Sakurajima",lat:31.581,lng:130.657,country:"Japan",type:"Stratovolcano"},
+  {name:"Mount Merapi",lat:-7.541,lng:110.446,country:"Indonesia",type:"Stratovolcano"},
+  {name:"Krakatoa",lat:-6.102,lng:105.423,country:"Indonesia",type:"Stratovolcano"},
+  {name:"Popocatepetl",lat:19.023,lng:-98.622,country:"Mexico",type:"Stratovolcano"},
+  {name:"Villarrica",lat:-39.422,lng:-71.937,country:"Chile",type:"Stratovolcano"},
+  {name:"Nyiragongo",lat:-1.521,lng:29.250,country:"DR Congo",type:"Shield"},
+  {name:"Mount Erebus",lat:-77.530,lng:167.153,country:"Antarctica",type:"Stratovolcano"},
+  {name:"Colima",lat:19.514,lng:-103.62,country:"Mexico",type:"Stratovolcano"},
+  {name:"Ol Doinyo Lengai",lat:-2.751,lng:35.914,country:"Tanzania",type:"Stratovolcano"},
+  {name:"Erta Ale",lat:13.600,lng:40.670,country:"Ethiopia",type:"Shield"},
+  {name:"Mount Ruapehu",lat:-39.281,lng:175.564,country:"New Zealand",type:"Stratovolcano"},
+  {name:"White Island",lat:-37.521,lng:177.183,country:"New Zealand",type:"Stratovolcano"},
+  {name:"Taal Volcano",lat:14.002,lng:120.993,country:"Philippines",type:"Stratovolcano"},
+  {name:"Pinatubo",lat:15.143,lng:120.350,country:"Philippines",type:"Stratovolcano"},
+  {name:"Mount St. Helens",lat:46.191,lng:-122.196,country:"USA",type:"Stratovolcano"},
+  {name:"Rainier",lat:46.853,lng:-121.760,country:"USA",type:"Stratovolcano"},
+  {name:"Shishaldin",lat:54.756,lng:-163.970,country:"USA (Alaska)",type:"Stratovolcano"},
+  {name:"Klyuchevskaya",lat:56.057,lng:160.638,country:"Russia",type:"Stratovolcano"},
+  {name:"Semeru",lat:-8.108,lng:112.922,country:"Indonesia",type:"Stratovolcano"},
+  {name:"Sinabung",lat:3.170,lng:98.392,country:"Indonesia",type:"Stratovolcano"},
+  {name:"Mount Fuji",lat:35.360,lng:138.727,country:"Japan",type:"Stratovolcano"},
+  {name:"Yasur",lat:-19.528,lng:169.443,country:"Vanuatu",type:"Stratovolcano"},
+  {name:"Piton de la Fournaise",lat:-21.244,lng:55.708,country:"Réunion",type:"Shield"},
+  {name:"Tungurahua",lat:-1.467,lng:-78.446,country:"Ecuador",type:"Stratovolcano"},
+  {name:"Cotopaxi",lat:-0.677,lng:-78.436,country:"Ecuador",type:"Stratovolcano"},
+  {name:"Mount Agung",lat:-8.343,lng:115.508,country:"Indonesia",type:"Stratovolcano"},
+];
+
+let map, streetLayer, satLayer, eqLayer, volLayer;
+let eqActive = true, volActive = true;
+
+function magToRadius(m) {
+  if (m >= 7) return 18;
+  if (m >= 5) return 12;
+  if (m >= 3) return 7;
+  return 4;
+}
+function magToOpacity(m) {
+  if (m >= 7) return 1.0;
+  if (m >= 5) return 0.85;
+  if (m >= 3) return 0.6;
+  return 0.4;
+}
+
+map = L.map('map').setView([-25, 133], 4);
+
+streetLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+  maxZoom: 18
+});
+satLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+  attribution: '© Esri, Maxar, Earthstar Geographics',
+  maxZoom: 18
+});
+streetLayer.addTo(map);
+
+volLayer = L.layerGroup();
+volcanoes.forEach(v => {
+  const icon = L.divIcon({
+    html: `<div style="font-size:20px;line-height:1;filter:drop-shadow(0 1px 3px rgba(0,0,0,0.35));">🔺</div>`,
+    iconSize: [22, 22], iconAnchor: [11, 20], className: ''
+  });
+  L.marker([v.lat, v.lng], {icon}).addTo(volLayer)
+    .bindPopup(`
+      <div style="font-family:-apple-system,sans-serif;min-width:160px;">
+        <b style="font-size:14px;color:#1a1a1a;">${v.name}</b><br>
+        <span style="font-size:12px;color:#666;">${v.country}</span><br>
+        <span style="font-size:12px;color:#555;">Type: ${v.type}</span>
+      </div>
+    `);
+});
+volLayer.addTo(map);
+
+eqLayer = L.layerGroup();
+fetch('https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/2.5_week.geojson')
+  .then(r => r.json())
+  .then(data => {
+    const count = data.features.length;
+    data.features.forEach(f => {
+      const [lng, lat, depth] = f.geometry.coordinates;
+      const mag = f.properties.mag;
+      const place = f.properties.place || 'Unknown location';
+      const time = new Date(f.properties.time).toLocaleString();
+      L.circleMarker([lat, lng], {
+        radius: magToRadius(mag),
+        fillColor: '#E24B4A',
+        color: '#A32D2D',
+        weight: 0.8,
+        opacity: 1,
+        fillOpacity: magToOpacity(mag)
+      }).addTo(eqLayer).bindPopup(`
+        <div style="font-family:-apple-system,sans-serif;min-width:180px;">
+          <b style="font-size:14px;color:#1a1a1a;">M${mag.toFixed(1)} Earthquake</b><br>
+          <span style="font-size:12px;color:#666;">${place}</span><br>
+          <span style="font-size:12px;color:#555;">Depth: ${depth.toFixed(0)} km</span><br>
+          <span style="font-size:12px;color:#555;">${time}</span>
+        </div>
+      `);
+    });
+    eqLayer.addTo(map);
+    document.getElementById('eq-status').textContent = `${count} earthquakes · past 7 days · M2.5+`;
+  })
+  .catch(() => {
+    document.getElementById('eq-status').textContent = 'Could not load earthquake data (check internet connection)';
+  });
+
+function setBase(type) {
+  if (type === 'map') {
+    map.removeLayer(satLayer);
+    streetLayer.addTo(map);
+    document.getElementById('btn-map').classList.add('active');
+    document.getElementById('btn-sat').classList.remove('active');
+  } else {
+    map.removeLayer(streetLayer);
+    satLayer.addTo(map);
+    document.getElementById('btn-sat').classList.add('active');
+    document.getElementById('btn-map').classList.remove('active');
+  }
+}
+
+function toggleLayer(type) {
+  if (type === 'eq') {
+    eqActive = !eqActive;
+    const btn = document.getElementById('btn-eq');
+    if (eqActive) { eqLayer.addTo(map); btn.classList.add('active'); btn.classList.remove('inactive'); }
+    else { map.removeLayer(eqLayer); btn.classList.remove('active'); btn.classList.add('inactive'); }
+  } else {
+    volActive = !volActive;
+    const btn = document.getElementById('btn-vol');
+    if (volActive) { volLayer.addTo(map); btn.classList.add('active'); btn.classList.remove('inactive'); }
+    else { map.removeLayer(volLayer); btn.classList.remove('active'); btn.classList.add('inactive'); }
+  }
+}
+</script>
+</body>
+</html>

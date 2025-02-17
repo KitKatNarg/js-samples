@@ -1,3 +1,9 @@
+/**
+ * @license
+ * Copyright 2022 Google LLC. All Rights Reserved.
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 let map: google.maps.Map;
 let centerCoordinates = { lat: 42.349134, lng: -71.083184 }; // Boston, MA
 let infoWindow;
@@ -72,4 +78,5 @@ async function initMap() {
 }
 
 initMap();
+
 export {};

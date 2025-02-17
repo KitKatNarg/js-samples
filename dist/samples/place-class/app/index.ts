@@ -4,6 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+
 let map: google.maps.Map;
 let centerCoordinates = { lat: 37.4161493, lng: -122.0812166 };
 
@@ -20,6 +21,7 @@ async function initMap() {
 
     getPlaceDetails();
 }
+
 
 async function getPlaceDetails() {
     const { Place } =  await google.maps.importLibrary("places") as google.maps.PlacesLibrary;
@@ -45,5 +47,7 @@ async function getPlaceDetails() {
     });
 }
 
+
 initMap();
+
 export { };

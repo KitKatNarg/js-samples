@@ -4,6 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+
 let map: google.maps.Map;
 let centerCoordinates = { lat: 42.349134, lng: -71.083184 }; // Boston, MA
 let infoWindow;
@@ -21,6 +22,7 @@ async function initMap() {
         mapId: '4504f8b37365c3d0',
         // [END_EXCLUDE]
     });
+
 
     // Use a place ID to create a new Place instance.
     const place = new Place({
@@ -57,6 +59,7 @@ async function initMap() {
         ariaLabel: place.displayName,
     });
 
+
     // Add a marker.
     const marker = new AdvancedMarkerElement({
         map,
@@ -72,4 +75,5 @@ async function initMap() {
 }
 
 initMap();
+
 export { };

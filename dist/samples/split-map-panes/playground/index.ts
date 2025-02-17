@@ -1,3 +1,8 @@
+/**
+ * @license
+ * Copyright 2019 Google LLC. All Rights Reserved.
+ * SPDX-License-Identifier: Apache-2.0
+ */
 let mapLeft: google.maps.Map, mapRight: google.maps.Map;
 
 function initMap(): void {
@@ -79,12 +84,10 @@ function initMap(): void {
     const width = (document.getElementById("container") as HTMLElement)
       .offsetWidth;
 
-    (
-      document.getElementById("map-left") as HTMLElement
-    ).style.width = `${width}px`;
-    (
-      document.getElementById("map-right") as HTMLElement
-    ).style.width = `${width}px`;
+    (document.getElementById("map-left") as HTMLElement).style.width =
+      `${width}px`;
+    (document.getElementById("map-right") as HTMLElement).style.width =
+      `${width}px`;
   }
 
   // trigger to set map container size since using absolute
@@ -104,4 +107,5 @@ declare global {
   }
 }
 window.initMap = initMap;
+
 export {};

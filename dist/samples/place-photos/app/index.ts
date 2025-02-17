@@ -4,6 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+
 async function init() {
     const { Place } = await google.maps.importLibrary('places') as google.maps.PlacesLibrary;
 
